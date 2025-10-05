@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AnalyticsGoals from '@/components/AnalyticsGoals';
 import SalesAnalyticsSimple from '@/components/SalesAnalyticsSimple';
+import NavigationBar from '@/components/NavigationBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Target, BarChart3 } from 'lucide-react';
@@ -10,6 +11,7 @@ const AnalyticsSimple: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-background">
+            <NavigationBar />
             <main className="px-6 py-8 max-w-7xl mx-auto">
                 <div className="space-y-6">
                     {/* Header */}

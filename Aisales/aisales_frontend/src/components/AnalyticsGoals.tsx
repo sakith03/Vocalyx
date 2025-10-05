@@ -61,7 +61,8 @@ const initialFormState: GoalFormState = {
   priority: 'Medium',
 };
 
-const formatDateInputValue = (isoOrDate: string | Date) => {
+const formatDateInputValue = (isoOrDate: string | Date | null | undefined) => {
+  if (!isoOrDate) return '';
   const date = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
   if (Number.isNaN(date.getTime())) return '';
   const year = date.getFullYear();
@@ -89,8 +90,25 @@ const priorityClass = (p?: string) => {
 
 const getStatusInfo = (goal: Goal) => {
   const today = new Date();
+  
+  // Handle null/undefined dates
+  if (!goal.startDate || !goal.endDate) {
+    return {
+      status: 'Invalid Date',
+      color: 'bg-gray-100 text-gray-700 border-gray-200'
+    };
+  }
+  
   const startDate = new Date(goal.startDate);
   const endDate = new Date(goal.endDate);
+  
+  // Check if dates are valid
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return {
+      status: 'Invalid Date',
+      color: 'bg-gray-100 text-gray-700 border-gray-200'
+    };
+  }
   
   if (today < startDate) {
     return {
@@ -273,7 +291,11 @@ const AnalyticsGoals: React.FC = () => {
       company: goal.company || '',
       priority: goal.priority || 'Medium',
     });
-    setDateRange({ from: new Date(goal.startDate), to: new Date(goal.endDate) });
+    if (goal.startDate && goal.endDate) {
+      setDateRange({ from: new Date(goal.startDate), to: new Date(goal.endDate) });
+    } else {
+      setDateRange(undefined);
+    }
     setIsDialogOpen(true);
   };
 
@@ -305,7 +327,7 @@ const AnalyticsGoals: React.FC = () => {
     });
     
     if (conflictingGoal) {
-      setError(`Date conflict: Another goal '${conflictingGoal.name}' already exists during this time period (${formatDateInputValue(conflictingGoal.startDate)} to ${formatDateInputValue(conflictingGoal.endDate)}). Please choose different dates.`);
+      setError(`Date conflict: Another goal '${conflictingGoal.name}' already exists during this time period (${formatDateInputValue(conflictingGoal.startDate || '')} to ${formatDateInputValue(conflictingGoal.endDate || '')}). Please choose different dates.`);
       return true;
     }
     
@@ -674,11 +696,11 @@ const AnalyticsGoals: React.FC = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              computed.items.map((g) => (
+                computed.items.map((g) => (
                 <TableRow key={g.id}>
                   <TableCell className="font-medium" title={g.description || ''}>{g.name}</TableCell>
                   <TableCell>
-                    {formatDateInputValue(g.startDate)} → {formatDateInputValue(g.endDate)}
+                    {formatDateInputValue(g.startDate || '')} → {formatDateInputValue(g.endDate || '')}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
