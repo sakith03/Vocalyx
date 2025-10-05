@@ -76,7 +76,7 @@ const App = () => (
               <Route
                 path="/call-history"
                 element={
-                  <ProtectedRoute requiredPermission="Contacts">
+                  <ProtectedRoute requiredPermission="History">
                     <CallHistory />
                   </ProtectedRoute>
                 }

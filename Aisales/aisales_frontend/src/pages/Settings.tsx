@@ -64,7 +64,7 @@ const Settings = () => {
     'Dashboard': true,
     'Analytics': false,
     'Sentiment': false,
-    'Contacts': false,
+    'History': false,
     'Settings': false
   });
 
@@ -175,7 +175,7 @@ const Settings = () => {
         'Dashboard': true,
         'Analytics': false,
         'Sentiment': false,
-        'Contacts': false,
+        'History': false,
         'Settings': false
       });
       fetchCustomRoles(); // Refresh the roles list

@@ -27,7 +27,7 @@ const NavigationBar = () => {
     { path: '/dashboard', label: 'Dashboard', icon: Home, permission: 'Dashboard' },
     { path: '/analytics', label: 'Analytics', icon: BarChart3, permission: 'Analytics' },
     { path: '/sentiment-analysis', label: 'Sentiment', icon: Users, permission: 'Sentiment' },
-    { path: '/call-history', label: 'Call History', icon: MessageSquare, permission: 'Contacts' },
+    { path: '/call-history', label: 'Call History', icon: MessageSquare, permission: 'History' },
     { path: '/settings', label: 'Settings', icon: Settings, permission: 'Settings' },
   ];
 

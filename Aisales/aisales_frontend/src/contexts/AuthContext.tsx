@@ -86,7 +86,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Decode JWT to get user info (basic decoding - in production use a proper JWT library)
       const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('JWT Payload:', payload);
       
       const userData: User = {
         id: payload.userId || 0,
@@ -102,8 +101,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         customRoleName: payload.customRoleName || null,
         permissions: payload.permissions || {},
       };
-      
-      console.log('Parsed User Data:', userData);
 
       setToken(token);
       setUser(userData);
@@ -175,27 +172,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const hasPermission = (permission: string): boolean => {
-    if (!user) {
-      console.log('hasPermission: No user found');
-      return false;
-    }
-    
-    console.log('hasPermission: Checking permission', permission, 'for user:', user.email);
-    console.log('hasPermission: User role:', user.role);
-    console.log('hasPermission: User permissions:', user.permissions);
-    console.log('hasPermission: Custom role:', user.customRoleName);
+    if (!user) return false;
     
     // Admin always has all permissions
-    if (user.role === 'ADMIN') {
-      console.log('hasPermission: User is ADMIN, granting access');
-      return true;
-    }
+    if (user.role === 'ADMIN') return true;
     
     // Check custom role permissions
     if (user.permissions && user.permissions[permission] !== undefined) {
-      const hasAccess = user.permissions[permission];
-      console.log('hasPermission: Custom role permission for', permission, ':', hasAccess);
-      return hasAccess;
+      return user.permissions[permission];
     }
     
     // Default permissions for regular users
@@ -203,13 +187,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       'Dashboard': true,
       'Analytics': false,
       'Sentiment': false,
-      'Contacts': false,
+      'History': false,
       'Settings': false
     };
     
-    const defaultAccess = defaultPermissions[permission] || false;
-    console.log('hasPermission: Using default permission for', permission, ':', defaultAccess);
-    return defaultAccess;
+    return defaultPermissions[permission] || false;
   };
 
   const value: AuthContextType = {

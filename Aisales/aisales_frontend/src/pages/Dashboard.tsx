@@ -170,7 +170,7 @@ const Dashboard = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                      <span>Call History</span>
+                      <span>History</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Settings className="h-4 w-4 text-muted-foreground" />
