@@ -244,7 +244,7 @@ public class UserService {
             message.setText("You have been invited by " + admin.getEmail() +
                     " to join their workspace.\n\n" +
                     "Temporary Password: " + request.getTemporaryPassword() + "\n" +
-                    "Login at: http://localhost:5173/login\n\n" +
+                    "Login at: http://localhost:8081/login\n\n" +
                     "Please change your password after first login.");
             mailSender.send(message);
             log.info("Invitation email sent to {} by admin {}", request.getEmail(), admin.getEmail());
@@ -383,7 +383,7 @@ public class UserService {
             message.setText("You have been invited by " + admin.getEmail() +
                     " to join " + admin.getCompany().getCompanyName() + " workspace.\n\n" +
                     "Temporary Password: " + request.getTemporaryPassword() + "\n" +
-                    "Login at: http://localhost:5173/login\n\n" +
+                    "Login at: http://localhost:8081/login\n\n" +
                     "Please change your password after first login.");
             mailSender.send(message);
             log.info("Invitation email sent to {} by admin {}", request.getEmail(), admin.getEmail());
