@@ -188,7 +188,58 @@ const Login = () => {
                 </Link>
               </p>
               
-              {/* Forgot Password - Always show */}
+              {/* Forgot Password - Request email reset link */}
+              <div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="link" className="text-sm text-muted-foreground hover:text-primary">
+                      Forgot Password?
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Reset Password</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {/* Step 1: Request reset link */}
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email Address</Label>
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Enter your email address"
+                        />
+                      </div>
+                      <Button
+                        onClick={async () => {
+                          if (!email) {
+                            toast({ variant: 'destructive', title: 'Email required', description: 'Please enter your email.' });
+                            return;
+                          }
+                          try {
+                            const res = await fetch('http://localhost:8080/api/users/forgot-password', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ email }),
+                            });
+                            if (!res.ok) throw new Error('Failed to request reset');
+                            toast({ title: 'Check your email', description: 'We sent a reset link if the email exists.' });
+                          } catch {
+                            toast({ variant: 'destructive', title: 'Request failed', description: 'Please try again later.' });
+                          }
+                        }}
+                        className="w-full"
+                      >
+                        Send Reset Link
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Reset Password - for users who know current password */}
               <div>
                 <Dialog>
                   <DialogTrigger asChild>
@@ -202,9 +253,9 @@ const Login = () => {
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="reset-email">Email Address</Label>
+                        <Label htmlFor="reset-email-inline">Email Address</Label>
                         <Input
-                          id="reset-email"
+                          id="reset-email-inline"
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -212,9 +263,9 @@ const Login = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="current-password">Current Password</Label>
+                        <Label htmlFor="current-password-inline">Current Password</Label>
                         <Input
-                          id="current-password"
+                          id="current-password-inline"
                           type="password"
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
@@ -222,9 +273,9 @@ const Login = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="new-password">New Password</Label>
+                        <Label htmlFor="new-password-inline">New Password</Label>
                         <Input
-                          id="new-password"
+                          id="new-password-inline"
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
@@ -232,9 +283,9 @@ const Login = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="confirm-password">Confirm New Password</Label>
+                        <Label htmlFor="confirm-password-inline">Confirm New Password</Label>
                         <Input
-                          id="confirm-password"
+                          id="confirm-password-inline"
                           type="password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}

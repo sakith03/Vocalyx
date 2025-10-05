@@ -17,6 +17,7 @@ import SentimentAnalysis from "./pages/SentimentAnalysis";
 import WorkspaceSetup from "./pages/WorkspaceSetup";
 import Settings from "./pages/Settings";
 import PasswordTest from "./pages/PasswordTest";
+import ResetPassword from "./pages/ResetPassword";
 import CallHistory from "./pages/CallHistory";
 
 const queryClient = new QueryClient({
@@ -90,6 +91,7 @@ const App = () => (
                 }
               />
               <Route path="/password-test" element={<PasswordTest />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/analytics"
                 element={

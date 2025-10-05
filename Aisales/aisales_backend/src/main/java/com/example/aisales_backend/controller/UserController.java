@@ -5,6 +5,8 @@ import com.example.aisales_backend.dto.RegisterRequest;
 import com.example.aisales_backend.dto.UserResponse;
 import com.example.aisales_backend.dto.InviteUserRequest;
 import com.example.aisales_backend.dto.PasswordResetRequest;
+import com.example.aisales_backend.dto.RequestPasswordResetDto;
+import com.example.aisales_backend.dto.PerformPasswordResetDto;
 import com.example.aisales_backend.dto.TestPasswordRequest;
 import com.example.aisales_backend.dto.CompanyRequest;
 import com.example.aisales_backend.dto.UpdateUserRequest;
@@ -60,6 +62,20 @@ public class UserController {
     @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
         userService.resetPassword(request);
+        return ResponseEntity.ok().build();
+    }
+
+    // Forgot Password - request reset link
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody RequestPasswordResetDto request) {
+        userService.requestPasswordReset(request);
+        return ResponseEntity.ok().build();
+    }
+
+    // Reset with token
+    @PostMapping("/perform-reset")
+    public ResponseEntity<Void> performPasswordReset(@Valid @RequestBody PerformPasswordResetDto request) {
+        userService.performPasswordReset(request);
         return ResponseEntity.ok().build();
     }
 

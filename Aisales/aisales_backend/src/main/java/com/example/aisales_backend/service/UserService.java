@@ -5,6 +5,10 @@ import com.example.aisales_backend.dto.RegisterRequest;
 import com.example.aisales_backend.dto.UserResponse;
 import com.example.aisales_backend.dto.InviteUserRequest;
 import com.example.aisales_backend.dto.PasswordResetRequest;
+import com.example.aisales_backend.dto.RequestPasswordResetDto;
+import com.example.aisales_backend.dto.PerformPasswordResetDto;
+import com.example.aisales_backend.entity.PasswordResetToken;
+import com.example.aisales_backend.repository.PasswordResetTokenRepository;
 import com.example.aisales_backend.dto.CompanyRequest;
 import com.example.aisales_backend.entity.UserRole;
 import com.example.aisales_backend.entity.User;
@@ -39,6 +43,7 @@ public class UserService {
     private final JavaMailSender mailSender;
     private final CompanyService companyService;
     private final WorkspaceService workspaceService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     // Getters for testing
     public UserRepository getUserRepository() {
@@ -116,6 +121,63 @@ public class UserService {
             log.error("Login failed for email: {}, error: {}", request.getEmail(), e.getMessage());
             throw new RuntimeException("Invalid email or password");
         }
+    }
+
+    // Forgot-password: issue reset token and send email
+    public void requestPasswordReset(RequestPasswordResetDto request) {
+        var userOpt = userRepository.findByEmail(request.getEmail());
+        if (userOpt.isEmpty()) {
+            // Do not reveal user existence
+            return;
+        }
+        var user = userOpt.get();
+
+        // Invalidate old tokens for this user
+        passwordResetTokenRepository.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(user.getId()) && !t.isUsed())
+                .forEach(t -> { t.setUsed(true); passwordResetTokenRepository.save(t); });
+
+        String token = java.util.UUID.randomUUID().toString().replaceAll("-", "");
+        var prt = PasswordResetToken.builder()
+                .token(token)
+                .user(user)
+                .expiresAt(java.time.LocalDateTime.now().plusMinutes(15))
+                .used(false)
+                .build();
+        passwordResetTokenRepository.save(prt);
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(user.getEmail());
+            message.setSubject("Reset your Vocalyx password");
+            message.setText("Click the link to reset your password: " +
+                    "http://localhost:8081/reset-password?token=" + token + "\n" +
+                    "This link will expire in 15 minutes.");
+            mailSender.send(message);
+        } catch (Exception e) {
+            log.warn("Failed to send password reset email to {}: {}", user.getEmail(), e.getMessage());
+        }
+    }
+
+    // Perform password reset using token
+    public void performPasswordReset(PerformPasswordResetDto request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("New password and confirm password do not match");
+        }
+        var token = passwordResetTokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
+
+        if (token.isUsed() || token.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
+            throw new RuntimeException("Invalid or expired token");
+        }
+
+        var user = token.getUser();
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        token.setUsed(true);
+        passwordResetTokenRepository.save(token);
     }
 
     private UserResponse mapToUserResponse(User user) {
