@@ -18,17 +18,17 @@ import {
 } from 'lucide-react';
 
 const NavigationBar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigationItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: Home },
-    { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { path: '/sentiment-analysis', label: 'Sentiment', icon: Users },
-    { path: '/chat', label: 'ChatBot', icon: Calendar },
-    { path: '/settings', label: 'Settings', icon: Settings },
+    { path: '/dashboard', label: 'Dashboard', icon: Home, permission: 'Dashboard' },
+    { path: '/analytics', label: 'Analytics', icon: BarChart3, permission: 'Analytics' },
+    { path: '/sentiment-analysis', label: 'Sentiment', icon: Users, permission: 'Sentiment' },
+    { path: '/call-history', label: 'Call History', icon: MessageSquare, permission: 'Contacts' },
+    { path: '/settings', label: 'Settings', icon: Settings, permission: 'Settings' },
   ];
 
   const isActivePath = (path: string) => {
@@ -58,7 +58,9 @@ const NavigationBar = () => {
 
             {/* Desktop Navigation Menu */}
             <nav className="hidden md:flex items-center space-x-1">
-              {navigationItems.map((item) => {
+              {navigationItems
+                .filter(item => hasPermission(item.permission))
+                .map((item) => {
                 const Icon = item.icon;
                 return (
                   <Button
@@ -125,7 +127,9 @@ const NavigationBar = () => {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-white/20 py-4">
             <nav className="flex flex-col space-y-2">
-              {navigationItems.map((item) => {
+              {navigationItems
+                .filter(item => hasPermission(item.permission))
+                .map((item) => {
                 const Icon = item.icon;
                 return (
                   <Button

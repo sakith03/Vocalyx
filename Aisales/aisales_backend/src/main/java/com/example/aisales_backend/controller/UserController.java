@@ -8,7 +8,11 @@ import com.example.aisales_backend.dto.PasswordResetRequest;
 import com.example.aisales_backend.dto.TestPasswordRequest;
 import com.example.aisales_backend.dto.CompanyRequest;
 import com.example.aisales_backend.dto.UpdateUserRequest;
+import com.example.aisales_backend.dto.CreateRoleRequest;
+import com.example.aisales_backend.dto.RoleResponse;
+import com.example.aisales_backend.dto.AssignRoleRequest;
 import com.example.aisales_backend.service.UserService;
+import com.example.aisales_backend.service.RoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +30,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final RoleService roleService;
 
     //User Register
     @PostMapping("/register")
@@ -131,7 +136,7 @@ public class UserController {
                     .lastName("User")
                     .email(request.getEmail())
                     .password(hashedPassword)
-                    .role(com.example.aisales_backend.entity.Role.USER)
+                    .role(com.example.aisales_backend.entity.UserRole.USER)
                     .build();
 
             var savedUser = userService.getUserRepository().save(user);
@@ -183,9 +188,65 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    // Create custom role
+    @PostMapping("/roles")
+    public ResponseEntity<RoleResponse> createRole(Authentication authentication, @Valid @RequestBody CreateRoleRequest request) {
+        String adminEmail = authentication.getName();
+        RoleResponse response = roleService.createRole(adminEmail, request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    // Get company roles
+    @GetMapping("/roles")
+    public ResponseEntity<List<RoleResponse>> getCompanyRoles(Authentication authentication) {
+        String adminEmail = authentication.getName();
+        List<RoleResponse> roles = roleService.getCompanyRoles(adminEmail);
+        return ResponseEntity.ok(roles);
+    }
+
+    // Delete role
+    @DeleteMapping("/roles/{roleId}")
+    public ResponseEntity<Void> deleteRole(Authentication authentication, @PathVariable Long roleId) {
+        String adminEmail = authentication.getName();
+        roleService.deleteRole(adminEmail, roleId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Assign custom role to user
+    @PostMapping("/{userId}/assign-role")
+    public ResponseEntity<UserResponse> assignCustomRole(Authentication authentication, @PathVariable Long userId, @RequestBody AssignRoleRequest request) {
+        String adminEmail = authentication.getName();
+        UserResponse response = userService.assignCustomRole(adminEmail, userId, request.getCustomRoleId());
+        return ResponseEntity.ok(response);
+    }
+
     // Health check endpoint
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("User service is running");
+    }
+
+    // Debug endpoint to check user role assignment
+    @GetMapping("/debug/user/{userId}")
+    public ResponseEntity<String> debugUserRole(@PathVariable Long userId) {
+        try {
+            var user = userService.getUserRepository().findById(userId);
+            if (user.isEmpty()) {
+                return ResponseEntity.badRequest().body("User not found");
+            }
+            
+            var u = user.get();
+            String customRoleInfo = "No custom role";
+            if (u.getCustomRole() != null) {
+                customRoleInfo = "Custom role: " + u.getCustomRole().getRoleName() + " (ID: " + u.getCustomRole().getId() + ")";
+            }
+            
+            return ResponseEntity.ok("User: " + u.getEmail() + 
+                " | Basic Role: " + u.getRole() + 
+                " | " + customRoleInfo +
+                " | Company: " + (u.getCompany() != null ? u.getCompany().getCompanyName() : "null"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
     }
 }

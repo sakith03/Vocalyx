@@ -1,6 +1,6 @@
 package com.example.aisales_backend.dto;
 
-import com.example.aisales_backend.entity.Role;
+import com.example.aisales_backend.entity.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,9 +18,11 @@ public class UserResponse {
     private String firstName;
     private String lastName;
     private String email;
-    private Role role;
+    private UserRole role;
     private LocalDateTime createdAt;
     private Long companyId;
     private String companyName;
     private String status;
+    private Long customRoleId;
+    private String customRoleName;
 }

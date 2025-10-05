@@ -6,10 +6,12 @@ import com.example.aisales_backend.dto.UserResponse;
 import com.example.aisales_backend.dto.InviteUserRequest;
 import com.example.aisales_backend.dto.PasswordResetRequest;
 import com.example.aisales_backend.dto.CompanyRequest;
-import com.example.aisales_backend.entity.Role;
+import com.example.aisales_backend.entity.UserRole;
 import com.example.aisales_backend.entity.User;
 import com.example.aisales_backend.entity.Company;
+import com.example.aisales_backend.entity.CustomRole;
 import com.example.aisales_backend.repository.UserRepository;
+import com.example.aisales_backend.repository.CustomRoleRepository;
 import com.example.aisales_backend.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final CustomRoleRepository customRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
@@ -58,7 +61,7 @@ public class UserService {
 
         // All new users start as ADMIN (they will create their own company)
         // If they are invited by an existing admin, they will be assigned USER role and company_id
-        Role assignedRole = Role.ADMIN;
+        UserRole assignedRole = UserRole.ADMIN;
 
         // Create new user without company_id initially
         User user = User.builder()
@@ -118,14 +121,20 @@ public class UserService {
     private UserResponse mapToUserResponse(User user) {
         Long companyId = null;
         String companyName = null;
+        Long customRoleId = null;
+        String customRoleName = null;
         
         try {
             if (user.getCompany() != null) {
                 companyId = user.getCompany().getId();
                 companyName = user.getCompany().getCompanyName();
             }
+            if (user.getCustomRole() != null) {
+                customRoleId = user.getCustomRole().getId();
+                customRoleName = user.getCustomRole().getRoleName();
+            }
         } catch (Exception e) {
-            log.warn("Could not access company information for user {}: {}", user.getEmail(), e.getMessage());
+            log.warn("Could not access company or role information for user {}: {}", user.getEmail(), e.getMessage());
         }
         
         return UserResponse.builder()
@@ -138,6 +147,8 @@ public class UserService {
                 .companyId(companyId)
                 .companyName(companyName)
                 .status("Active") // For now, all users are active
+                .customRoleId(customRoleId)
+                .customRoleName(customRoleName)
                 .build();
     }
 
@@ -156,7 +167,7 @@ public class UserService {
                 .lastName("Member")
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getTemporaryPassword()))
-                .role(Role.USER)
+                        .role(UserRole.USER)
                 .workspaceId(admin.getWorkspaceId())
                 .build();
 
@@ -285,7 +296,7 @@ public class UserService {
                 .lastName("Member")
                 .email(request.getEmail())
                 .password(hashedPassword)
-                .role(Role.USER)
+                        .role(UserRole.USER)
                 .company(admin.getCompany())
                 .workspaceId(admin.getWorkspaceId())
                 .build();
@@ -370,8 +381,36 @@ public class UserService {
         userToUpdate.setLastName(request.getLastName());
         userToUpdate.setEmail(request.getEmail());
 
+        // Handle custom role assignment
+        if (request.getCustomRoleId() != null) {
+            CustomRole customRole = customRoleRepository.findById(request.getCustomRoleId())
+                    .orElseThrow(() -> new RuntimeException("Custom role not found"));
+            
+            // Verify the role belongs to the same company
+            if (!customRole.getCompany().getId().equals(admin.getCompany().getId())) {
+                throw new RuntimeException("Role does not belong to your workspace");
+            }
+            
+            userToUpdate.setCustomRole(customRole);
+            log.info("Custom role {} assigned to user {} by admin {}", customRole.getRoleName(), userToUpdate.getEmail(), adminEmail);
+        } else {
+            // Remove custom role if null
+            userToUpdate.setCustomRole(null);
+            log.info("Custom role removed from user {} by admin {}", userToUpdate.getEmail(), adminEmail);
+        }
+
         User savedUser = userRepository.save(userToUpdate);
         log.info("User {} updated by admin {}", savedUser.getEmail(), adminEmail);
+        
+        // Log the final state of the user's role
+        if (savedUser.getCustomRole() != null) {
+            log.info("User {} now has custom role: {} (ID: {})", 
+                savedUser.getEmail(), 
+                savedUser.getCustomRole().getRoleName(), 
+                savedUser.getCustomRole().getId());
+        } else {
+            log.info("User {} has no custom role assigned", savedUser.getEmail());
+        }
 
         return mapToUserResponse(savedUser);
     }
@@ -401,5 +440,41 @@ public class UserService {
 
         userRepository.deleteById(userId);
         log.info("User {} deleted by admin {}", userToDelete.getEmail(), adminEmail);
+    }
+
+    @Transactional
+    public UserResponse assignCustomRole(String adminEmail, Long userId, Long customRoleId) {
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        if (admin.getCompany() == null) {
+            throw new RuntimeException("Admin must have a company to assign roles");
+        }
+
+        // Find the user to update
+        User userToUpdate = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Verify the user belongs to the same company
+        if (userToUpdate.getCompany() == null || !userToUpdate.getCompany().getId().equals(admin.getCompany().getId())) {
+            throw new RuntimeException("User does not belong to your workspace");
+        }
+
+        // Find the custom role
+        CustomRole customRole = customRoleRepository.findById(customRoleId)
+                .orElseThrow(() -> new RuntimeException("Custom role not found"));
+
+        // Verify the role belongs to the same company
+        if (!customRole.getCompany().getId().equals(admin.getCompany().getId())) {
+            throw new RuntimeException("Role does not belong to your workspace");
+        }
+
+        // Assign the custom role
+        userToUpdate.setCustomRole(customRole);
+        User savedUser = userRepository.save(userToUpdate);
+
+        log.info("Custom role {} assigned to user {} by admin {}", customRole.getRoleName(), savedUser.getEmail(), adminEmail);
+
+        return mapToUserResponse(savedUser);
     }
 }

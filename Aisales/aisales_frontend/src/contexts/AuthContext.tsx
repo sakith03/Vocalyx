@@ -11,6 +11,9 @@ interface User {
   workspaceId?: number | null;
   companyId?: number | null;
   companyName?: string | null;
+  customRoleId?: number | null;
+  customRoleName?: string | null;
+  permissions?: Record<string, boolean>;
 }
 
 interface AuthContextType {
@@ -21,6 +24,7 @@ interface AuthContextType {
   logout: () => void;
   refreshUser: () => void;
   isLoading: boolean;
+  hasPermission: (permission: string) => boolean;
 }
 
 interface RegisterData {
@@ -82,6 +86,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Decode JWT to get user info (basic decoding - in production use a proper JWT library)
       const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log('JWT Payload:', payload);
+      
       const userData: User = {
         id: payload.userId || 0,
         firstName: payload.firstName || '',
@@ -92,7 +98,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         workspaceId: typeof payload.workspaceId === 'number' ? payload.workspaceId : (payload.workspaceId ?? null),
         companyId: typeof payload.companyId === 'number' ? payload.companyId : (payload.companyId ?? null),
         companyName: payload.companyName || null,
+        customRoleId: typeof payload.customRoleId === 'number' ? payload.customRoleId : (payload.customRoleId ?? null),
+        customRoleName: payload.customRoleName || null,
+        permissions: payload.permissions || {},
       };
+      
+      console.log('Parsed User Data:', userData);
 
       setToken(token);
       setUser(userData);
@@ -103,7 +114,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (userData.role === 'ADMIN' && (userData.companyId === null || userData.companyId === undefined)) {
         navigate('/workspace-setup');
       } else {
-        navigate('/dashboard');
+        // Check if user has any permissions beyond Dashboard
+        const hasOtherPermissions = userData.permissions && Object.entries(userData.permissions)
+          .some(([key, value]) => key !== 'Dashboard' && value === true);
+        
+        // If user has no custom role or only Dashboard permission, show a message
+        if (!userData.customRoleId && !hasOtherPermissions) {
+          // User can only access dashboard until admin assigns a role
+          navigate('/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (error) {
       throw error;
@@ -153,6 +174,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const hasPermission = (permission: string): boolean => {
+    if (!user) {
+      console.log('hasPermission: No user found');
+      return false;
+    }
+    
+    console.log('hasPermission: Checking permission', permission, 'for user:', user.email);
+    console.log('hasPermission: User role:', user.role);
+    console.log('hasPermission: User permissions:', user.permissions);
+    console.log('hasPermission: Custom role:', user.customRoleName);
+    
+    // Admin always has all permissions
+    if (user.role === 'ADMIN') {
+      console.log('hasPermission: User is ADMIN, granting access');
+      return true;
+    }
+    
+    // Check custom role permissions
+    if (user.permissions && user.permissions[permission] !== undefined) {
+      const hasAccess = user.permissions[permission];
+      console.log('hasPermission: Custom role permission for', permission, ':', hasAccess);
+      return hasAccess;
+    }
+    
+    // Default permissions for regular users
+    const defaultPermissions: Record<string, boolean> = {
+      'Dashboard': true,
+      'Analytics': false,
+      'Sentiment': false,
+      'Contacts': false,
+      'Settings': false
+    };
+    
+    const defaultAccess = defaultPermissions[permission] || false;
+    console.log('hasPermission: Using default permission for', permission, ':', defaultAccess);
+    return defaultAccess;
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -161,6 +220,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshUser,
     isLoading,
+    hasPermission,
   };
 
   return (

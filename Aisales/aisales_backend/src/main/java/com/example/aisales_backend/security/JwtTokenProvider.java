@@ -67,6 +67,33 @@ public class JwtTokenProvider {
             // Don't add company information if there's an issue
         }
         
+        // Add custom role and permissions information
+        try {
+            if (user.getCustomRole() != null) {
+                log.info("User {} has custom role: {} (ID: {})", user.getEmail(), user.getCustomRole().getRoleName(), user.getCustomRole().getId());
+                claims.put("customRoleId", user.getCustomRole().getId());
+                claims.put("customRoleName", user.getCustomRole().getRoleName());
+                
+                // Add permissions as a map for easy frontend access
+                Map<String, Boolean> permissions = new HashMap<>();
+                if (user.getCustomRole().getPermissions() != null) {
+                    log.info("User {} has {} permissions", user.getEmail(), user.getCustomRole().getPermissions().size());
+                    for (var permission : user.getCustomRole().getPermissions()) {
+                        permissions.put(permission.getPermissionName(), permission.getHasAccess());
+                        log.info("Permission: {} = {}", permission.getPermissionName(), permission.getHasAccess());
+                    }
+                } else {
+                    log.warn("User {} custom role has null permissions", user.getEmail());
+                }
+                claims.put("permissions", permissions);
+                log.info("Added permissions to JWT for user {}: {}", user.getEmail(), permissions);
+            } else {
+                log.info("User {} has no custom role assigned", user.getEmail());
+            }
+        } catch (Exception e) {
+            log.warn("Could not access custom role information for user {}: {}", user.getEmail(), e.getMessage());
+        }
+        
         return createToken(claims, user.getUsername());
     }
 

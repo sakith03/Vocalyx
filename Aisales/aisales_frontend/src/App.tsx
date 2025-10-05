@@ -60,7 +60,7 @@ const App = () => (
               <Route
                 path="/dashboard"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredPermission="Dashboard">
                     <Dashboard />
                   </ProtectedRoute>
                 }
@@ -76,7 +76,7 @@ const App = () => (
               <Route
                 path="/call-history"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredPermission="Contacts">
                     <CallHistory />
                   </ProtectedRoute>
                 }
@@ -84,7 +84,7 @@ const App = () => (
               <Route
                 path="/settings"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredPermission="Settings">
                     <Settings />
                   </ProtectedRoute>
                 }
@@ -93,7 +93,7 @@ const App = () => (
               <Route
                 path="/analytics"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredPermission="Analytics">
                     <AnalyticsSimple />
                   </ProtectedRoute>
                 }
@@ -109,7 +109,7 @@ const App = () => (
               <Route
                 path="/sentiment-analysis"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredPermission="Sentiment">
                     <SentimentAnalysis />
                   </ProtectedRoute>
                 }
