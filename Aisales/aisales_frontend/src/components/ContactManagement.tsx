@@ -16,7 +16,10 @@ import {
   Phone,
   Mail,
   Briefcase,
-  Building2
+  Building2,
+  Edit,
+  Trash2,
+  X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -54,6 +57,9 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
   const [selectedDepartment, setSelectedDepartment] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   // Form state for creating new contact
   const [newContact, setNewContact] = useState({
@@ -230,6 +236,135 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
     return statusConfig?.color || 'bg-gray-100 text-gray-800';
   };
 
+  const handleEditContact = (contact: Contact) => {
+    setEditingContact(contact);
+    setIsEditing(true);
+  };
+
+  const handleUpdateContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingContact || !editingContact.firstName.trim() || !editingContact.lastName.trim()) return;
+
+    setIsCreating(true);
+
+    try {
+      const token = localStorage.getItem('finsight_token');
+      
+      const contactData = {
+        salutation: editingContact.salutation,
+        firstName: editingContact.firstName,
+        lastName: editingContact.lastName,
+        jobTitle: editingContact.jobTitle,
+        email: editingContact.email,
+        phoneNumber: editingContact.phoneNumber,
+        department: editingContact.department,
+        status: editingContact.status,
+        companyName: editingContact.companyName
+      };
+
+      const response = await fetch(`http://localhost:8080/api/contacts/${editingContact.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(contactData),
+      });
+
+      if (response.ok) {
+        const updatedContact = await response.json();
+        
+        setContacts(prev => prev.map(contact => 
+          contact.id === updatedContact.id ? updatedContact : contact
+        ));
+        
+        // If this was the selected contact, update it
+        if (selectedContact?.id === updatedContact.id) {
+          onContactSelect(updatedContact);
+        }
+        
+        setIsEditing(false);
+        setEditingContact(null);
+
+        toast({
+          title: "Contact Updated",
+          description: `${updatedContact.firstName} ${updatedContact.lastName} has been updated successfully`,
+        });
+      } else {
+        let msg = 'Failed to update contact';
+        const ct = response.headers.get('content-type') || '';
+        try {
+          if (ct.includes('application/json')) {
+            const body = await response.json();
+            msg = body.error || Object.values(body).join(', ') || msg;
+          } else {
+            const text = await response.text();
+            msg = text || msg;
+          }
+        } catch {}
+        throw new Error(msg);
+      }
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to update contact',
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeleteContact = async (contactId: number) => {
+    if (!confirm('Are you sure you want to delete this contact? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const token = localStorage.getItem('finsight_token');
+      
+      const response = await fetch(`http://localhost:8080/api/contacts/${contactId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (response.ok) {
+        setContacts(prev => prev.filter(contact => contact.id !== contactId));
+        
+        // If this was the selected contact, clear it
+        if (selectedContact?.id === contactId) {
+          onContactSelect(null as any);
+        }
+
+        toast({
+          title: "Contact Deleted",
+          description: "Contact has been deleted successfully",
+        });
+      } else {
+        throw new Error('Failed to delete contact');
+      }
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to delete contact',
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditingContact(null);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -311,14 +446,16 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
               filteredContacts.map((contact) => (
                 <Card 
                   key={contact.id} 
-                  className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+                  className={`transition-colors hover:bg-muted/50 ${
                     selectedContact?.id === contact.id ? 'ring-2 ring-primary' : ''
                   }`}
-                  onClick={() => onContactSelect(contact)}
                 >
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex-1">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => onContactSelect(contact)}
+                      >
                         <div className="flex items-center space-x-3">
                           <h3 className="font-semibold">
                             {contact.salutation} {contact.firstName} {contact.lastName}
@@ -351,6 +488,31 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                             </div>
                           )}
                         </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditContact(contact);
+                          }}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteContact(contact.id);
+                          }}
+                          disabled={isDeleting}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -518,6 +680,195 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
           </form>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Contact Modal */}
+      {isEditing && editingContact && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center space-x-2">
+                  <Edit className="h-5 w-5" />
+                  <span>Edit Contact</span>
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={cancelEdit}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdateContact} className="space-y-4">
+                {/* Contact Information Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Contact Information</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-salutation">Salutation *</Label>
+                      <Select 
+                        value={editingContact.salutation} 
+                        onValueChange={(value: any) => 
+                          setEditingContact(prev => prev ? { ...prev, salutation: value } : null)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {salutations.map(sal => (
+                            <SelectItem key={sal.value} value={sal.value}>
+                              {sal.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-firstName">First Name *</Label>
+                      <Input
+                        id="edit-firstName"
+                        value={editingContact.firstName}
+                        onChange={(e) => setEditingContact(prev => prev ? { ...prev, firstName: e.target.value } : null)}
+                        placeholder="Enter first name"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-lastName">Last Name *</Label>
+                      <Input
+                        id="edit-lastName"
+                        value={editingContact.lastName}
+                        onChange={(e) => setEditingContact(prev => prev ? { ...prev, lastName: e.target.value } : null)}
+                        placeholder="Enter last name"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-jobTitle">Job Title</Label>
+                      <Input
+                        id="edit-jobTitle"
+                        value={editingContact.jobTitle}
+                        onChange={(e) => setEditingContact(prev => prev ? { ...prev, jobTitle: e.target.value } : null)}
+                        placeholder="Enter job title"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-email">Email</Label>
+                      <Input
+                        id="edit-email"
+                        type="email"
+                        value={editingContact.email}
+                        onChange={(e) => setEditingContact(prev => prev ? { ...prev, email: e.target.value } : null)}
+                        placeholder="Enter email address"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-phoneNumber">Phone Number</Label>
+                      <Input
+                        id="edit-phoneNumber"
+                        value={editingContact.phoneNumber}
+                        onChange={(e) => setEditingContact(prev => prev ? { ...prev, phoneNumber: e.target.value } : null)}
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-department">Department *</Label>
+                      <Select 
+                        value={editingContact.department} 
+                        onValueChange={(value: any) => 
+                          setEditingContact(prev => prev ? { ...prev, department: value } : null)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map(dept => (
+                            <SelectItem key={dept} value={dept}>
+                              {dept.replace('_', ' ')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-status">Status</Label>
+                      <Select 
+                        value={editingContact.status} 
+                        onValueChange={(value: any) => 
+                          setEditingContact(prev => prev ? { ...prev, status: value } : null)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statuses.map(status => (
+                            <SelectItem key={status.value} value={status.value}>
+                              {status.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-companyName">Company Name (Optional)</Label>
+                      <Input
+                        id="edit-companyName"
+                        value={editingContact.companyName}
+                        onChange={(e) => setEditingContact(prev => prev ? { ...prev, companyName: e.target.value } : null)}
+                        placeholder="Enter company name"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={cancelEdit}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={isCreating || !editingContact.firstName.trim() || !editingContact.lastName.trim()}
+                  >
+                    {isCreating ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Updating Contact...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Update Contact
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Selected Contact Summary */}
       {selectedContact && (
