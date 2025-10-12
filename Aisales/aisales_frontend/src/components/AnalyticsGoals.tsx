@@ -46,7 +46,6 @@ type GoalFormState = {
   currentProgress: string; // string for control; default 0 on create
   startDate: string; // yyyy-MM-dd
   endDate: string; // yyyy-MM-dd
-  company: string;
   priority: string;
 };
 
@@ -57,7 +56,6 @@ const initialFormState: GoalFormState = {
   currentProgress: '0',
   startDate: '',
   endDate: '',
-  company: '',
   priority: 'Medium',
 };
 
@@ -256,7 +254,6 @@ const AnalyticsGoals: React.FC = () => {
         currentProgress: Number(formState.currentProgress || '0'),
         startDate: toLocalDateString(formState.startDate),
         endDate: toLocalDateString(formState.endDate),
-        company: formState.company.trim(),
         priority: formState.priority,
       };
 
@@ -288,7 +285,6 @@ const AnalyticsGoals: React.FC = () => {
       currentProgress: String(goal.currentProgress ?? '0'),
       startDate: goal.startDate ? formatDateInputValue(goal.startDate) : '',
       endDate: goal.endDate ? formatDateInputValue(goal.endDate) : '',
-      company: goal.company || '',
       priority: goal.priority || 'Medium',
     });
     if (goal.startDate && goal.endDate) {
@@ -538,22 +534,6 @@ const AnalyticsGoals: React.FC = () => {
                     />
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
-                  <select
-                    id="company"
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={formState.company}
-                    onChange={(e) => setFormState((s) => ({ ...s, company: e.target.value }))}
-                    required
-                  >
-                    <option value="" disabled>Select a company</option>
-                    <option value="Acme Corp">Acme Corp</option>
-                    <option value="Globex Inc">Globex Inc</option>
-                    <option value="Initech">Initech</option>
-                    <option value="Hooli">Hooli</option>
-                  </select>
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
                   <select
