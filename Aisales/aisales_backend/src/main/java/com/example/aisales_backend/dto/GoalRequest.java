@@ -20,7 +20,6 @@ public class GoalRequest {
     private LocalDate startDate;
     @NotNull
     private LocalDate endDate;
-    @NotBlank
     private String company;
     @NotBlank
     private String priority;

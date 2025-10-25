@@ -8,6 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Target, DollarSign, Building, Flag, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
+import GoalAchievementChart from '@/components/GoalAchievementChart';
+import GoalStatisticsTable from '@/components/GoalStatisticsTable';
+import GoalPredictionsTable from '@/components/GoalPredictionsTable';
 
 type Goal = {
     id: number;
@@ -185,6 +188,33 @@ const GoalDetail: React.FC = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Goal Achievement Visualization */}
+            <div className="space-y-6">
+                {/* Achievement Chart */}
+                <GoalAchievementChart
+                    goalId={goal?.id || 0}
+                    targetRevenue={goal?.targetRevenue || 0}
+                    startDate={goal?.startDate || ''}
+                    endDate={goal?.endDate || ''}
+                />
+
+                {/* Statistics and Predictions Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <GoalStatisticsTable
+                        goalId={goal?.id || 0}
+                        targetRevenue={goal?.targetRevenue || 0}
+                        startDate={goal?.startDate || ''}
+                        endDate={goal?.endDate || ''}
+                    />
+                    <GoalPredictionsTable
+                        goalId={goal?.id || 0}
+                        targetRevenue={goal?.targetRevenue || 0}
+                        startDate={goal?.startDate || ''}
+                        endDate={goal?.endDate || ''}
+                    />
+                </div>
+            </div>
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
