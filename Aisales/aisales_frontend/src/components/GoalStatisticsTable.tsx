@@ -13,6 +13,7 @@ interface StatisticsData {
   totalSalesCount: number;
   bestDay: string;
   worstDay: string;
+  consistency: number;
 }
 
 interface GoalStatisticsTableProps {
@@ -80,6 +81,12 @@ const GoalStatisticsTable: React.FC<GoalStatisticsTableProps> = ({
         const bestDay = sortedDays[0] ? sortedDays[0][0] : 'N/A';
         const worstDay = sortedDays[sortedDays.length - 1] ? sortedDays[sortedDays.length - 1][0] : 'N/A';
         
+        // Calculate consistency (coefficient of variation)
+        const amounts = sales.map((sale: any) => parseFloat(sale.saleAmount) || 0);
+        const variance = amounts.reduce((sum: number, val: number) => sum + Math.pow(val - averageDailySales, 2), 0) / amounts.length;
+        const stdDev = Math.sqrt(variance);
+        const consistency = averageDailySales > 0 ? stdDev / averageDailySales : 0;
+        
         setStatistics({
           currentSales,
           predictedGrowth,
@@ -87,7 +94,8 @@ const GoalStatisticsTable: React.FC<GoalStatisticsTableProps> = ({
           averageDailySales,
           totalSalesCount,
           bestDay,
-          worstDay
+          worstDay,
+          consistency
         });
         
       } catch (error) {
@@ -100,7 +108,8 @@ const GoalStatisticsTable: React.FC<GoalStatisticsTableProps> = ({
           averageDailySales: targetRevenue * 0.01,
           totalSalesCount: 15,
           bestDay: '2024-01-15',
-          worstDay: '2024-01-08'
+          worstDay: '2024-01-08',
+          consistency: 0.35
         });
       } finally {
         setLoading(false);

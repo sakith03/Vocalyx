@@ -148,7 +148,7 @@ const GoalAchievementChart: React.FC<GoalAchievementChartProps> = ({
 
   // Advanced sales pattern analysis for chart
   const analyzeSalesPatterns = (data: SalesData[]) => {
-    if (data.length === 0) return { avgDailySales: 0, trend: 0, momentum: 1, dayOfWeekAvg: {} };
+    if (data.length === 0) return { avgDailySales: 0, trend: 0, momentum: 1, dayOfWeekAvg: {}, consistency: 0 };
     
     const totalSales = data.reduce((sum, d) => sum + d.amount, 0);
     const avgDailySales = totalSales / data.length;
@@ -171,6 +171,11 @@ const GoalAchievementChart: React.FC<GoalAchievementChartProps> = ({
     const recentSales = data.slice(midPoint).reduce((sum, d) => sum + d.amount, 0);
     const momentum = midPoint > 0 ? (recentSales / midPoint) / (earlySales / midPoint) : 1;
     
+    // Calculate consistency (coefficient of variation)
+    const variance = data.reduce((sum, d) => sum + Math.pow(d.amount - avgDailySales, 2), 0) / data.length;
+    const stdDev = Math.sqrt(variance);
+    const consistency = avgDailySales > 0 ? stdDev / avgDailySales : 0;
+    
     // Calculate day-of-week patterns
     const dayOfWeekSales: { [key: number]: number[] } = {};
     data.forEach(d => {
@@ -190,7 +195,8 @@ const GoalAchievementChart: React.FC<GoalAchievementChartProps> = ({
       avgDailySales,
       trend,
       momentum,
-      dayOfWeekAvg
+      dayOfWeekAvg,
+      consistency
     };
   };
 
