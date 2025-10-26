@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import NavigationBar from '../components/NavigationBar';
 import styles from './modules/CallHistory.module.css';
 import { Search, Phone, PhoneIncoming, PhoneOutgoing, Bot, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -95,7 +96,9 @@ const CallHistory = () => {
     );
 
     return (
-        <div className={styles.container}>
+        <div>
+            <NavigationBar />
+            <div className={styles.container}>
             <div className={styles.leftPanel}>
                 <div className={styles.searchBar}>
                     <Search className={styles.searchIcon} />
@@ -216,6 +219,7 @@ const CallHistory = () => {
                     </div>
                 )}
             </div>
+        </div>
         </div>
     );
 };

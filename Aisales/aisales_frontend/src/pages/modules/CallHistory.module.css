@@ -2,7 +2,7 @@
     display: grid;
     grid-template-columns: 350px 1fr;
     gap: 2rem;
-    height: calc(100vh - 4rem);
+    height: calc(100vh - 9rem);
     padding: 2rem;
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
