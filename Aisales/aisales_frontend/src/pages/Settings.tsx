@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, UserPlus } from 'lucide-react';
@@ -67,6 +67,10 @@ const Settings = () => {
     'History': false,
     'Settings': false
   });
+  
+  // Delete role confirmation state
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<CustomRole | null>(null);
 
   const isAdmin = user?.role === 'ADMIN';
 
@@ -244,6 +248,54 @@ const Settings = () => {
     } catch (e) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to remove user' });
     }
+  };
+
+  const handleDeleteRole = async () => {
+    if (!roleToDelete) return;
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/users/roles/${roleToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Failed to delete role');
+      }
+      
+      toast({ title: 'Success', description: 'Role deleted successfully' });
+      setIsDeleteDialogOpen(false);
+      setRoleToDelete(null);
+      
+      // Remove the role from the UI immediately
+      setCustomRoles(prev => prev.filter(role => role.id !== roleToDelete.id));
+      
+      // Also refresh the roles list to ensure consistency
+      fetchCustomRoles();
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Failed to delete role';
+      if (errorMessage.includes('assigned to users')) {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error', 
+          description: 'Unable to delete this role. It may be assigned to users.' 
+        });
+      } else {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error', 
+          description: errorMessage 
+        });
+      }
+    }
+  };
+
+  const openDeleteDialog = (role: CustomRole) => {
+    setRoleToDelete(role);
+    setIsDeleteDialogOpen(true);
   };
 
   return (
@@ -496,10 +548,7 @@ const Settings = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                // TODO: Implement delete role
-                                toast({ title: 'Delete Role', description: 'Delete functionality coming soon' });
-                              }}
+                              onClick={() => openDeleteDialog(role)}
                               className="text-red-600 hover:bg-red-100"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -572,6 +621,34 @@ const Settings = () => {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Role Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Role</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete this role?
+              </p>
+              {roleToDelete && (
+                <div className="mt-3 p-3 bg-muted rounded-lg">
+                  <p className="font-medium">{roleToDelete.roleName}</p>
+                  <p className="text-sm text-muted-foreground">{roleToDelete.description}</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteRole}>
+                Delete Role
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
         </div>
