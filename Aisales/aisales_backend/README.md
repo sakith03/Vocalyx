@@ -1,4 +1,4 @@
-# FinSight Backend - User Authentication API
+# Vocalyx Backend - User Authentication API
 
 This is the backend service for FinSight, providing user authentication and authorization functionality using JWT tokens.
 
